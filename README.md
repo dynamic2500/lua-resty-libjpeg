@@ -97,7 +97,9 @@ __NOTE:__ the number of bits per channel in the output bitmap is always 8.
 
 ## Sample Code
 
-~~~~Nginx Configuration
+Nginx Configuration
+
+~~~~ config
 server {
 	listen 80;
 	location = /favicon.ico {
@@ -114,8 +116,10 @@ server {
 }
 ~~~~
 
-~~~~lua
--- content of resty-libjpeg-sample.lua
+resty-libjpeg-sample.lua
+
+~~~~ lua
+
 local libjpeg = require("resty.libjpeg.jpeg") -- load library
 local res = ngx.location.capture('/proxy'..ngx.var.request_uri) -- get data from nginx location /proxy by subrequest 
 local img = libjpeg.load_blob(res.body) -- create object im
@@ -126,5 +130,3 @@ img.compress.quality = 80 -- set quality
 img:save() -- save file to disk
 ngx.print(img:get_blob()) -- return image after compress to end user
 ~~~~
-------------------- ----------------------------------------------------------
-
