@@ -473,8 +473,8 @@ local function load_blob(blob)
 	end
 
 	img.bmp = load_image(cinfo,img,t)
-	img.get_blob = function() img.settings.outfile = nil return save(img.bmp,img.settings) end
-	img.save = function() return save(img.bmp,img.settings) end
+	img.get_blob = function() img.compress.outfile = nil return save(img.bmp,img.compress) end
+	img.save = function() return save(img.bmp,img.compress) end
 	return img
 end
 
