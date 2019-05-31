@@ -4,7 +4,7 @@ This project is based on https://github.com/luapower/libjpeg
 tagline: JPEG encoding & decoding
 ---
 
-# Requirement Library
+# Required Library
 [luapower-glue](https://github.com/luapower/glue)
 
 [luapower-fs](https://github.com/luapower/fs)
@@ -63,7 +63,7 @@ Set settings for compress process. `opt` are some options as follow:
 Attribute store image data after decompress process
 
 
-### `img:get_blob() -> return <string> binaray data`
+### `img:get_blob() -> return <string> binary data`
 
 Get image data in binary string after compress process
 
@@ -100,18 +100,18 @@ __NOTE:__ the number of bits per channel in the output bitmap is always 8.
 **Nginx Configuration**
 ~~~~Nginx
 server {
-	listen 80;
-	location = /favicon.ico {
-		empty_gif;
-	}
-	location ~ /proxy(.*) {
-	    ## can use root or proxy_pass to get data from local or remote site
-		# proxy_pass https://<origin>$1;
-		root /dev/shm;
-	}
-	location / {
-		content_by_lua_file resty-libjpeg-sample.lua;
-	}
+    listen 80;
+    location = /favicon.ico {
+        empty_gif;
+    }
+    location ~ /proxy(.*) {
+        ## can use root or proxy_pass to get data from local or remote site
+        # proxy_pass https://<origin>$1;
+        root /dev/shm;
+    }
+    location / {
+        content_by_lua_file resty-libjpeg-sample.lua;
+    }
 }
 ~~~~
 
