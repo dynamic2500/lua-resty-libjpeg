@@ -9,11 +9,11 @@ tagline: JPEG encoding & decoding
 
 [luapower-fs](https://github.com/luapower/fs)
 
-[libjpeg-turbo] (v8 API)
+[libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) (v8 API)
 
 ## `local libjpeg = require('resty.libjpeg.jpeg')`
 
-A ffi binding for the [libjpeg-turbo] v8 API.
+A ffi binding for the [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) v8 API.
 Supports progressive loading, yielding from the reader function,
 partial loading, fractional scaling and multiple pixel formats.
 
@@ -88,6 +88,13 @@ __source formats__  __destination formats__
 `ycck8`             `cmyk8`
 ------------------- ----------------------------------------------------------
 
+__NOTE__: As can be seen, not all conversions are possible with libjpeg-turbo,
+so always check the image's `format` field to get the actual format. Use
+[bitmap](https://luapower.com/bitmap) to further convert the image if necessary.
+
+__NOTE:__ the number of bits per channel in the output bitmap is always 8.
+
+
 ## Sample Code
 
 ~~~~Nginx Configuration
@@ -108,28 +115,16 @@ server {
 ~~~~
 
 ~~~~lua
-    -- content of resty-libjpeg-sample.lua
-    local libjpeg = require("resty.libjpeg.jpeg") -- load library
-    local res = ngx.location.capture('/proxy'..ngx.var.request_uri) -- get data from nginx location /proxy by subrequest 
-    local img = libjpeg.load_blob(res.body) -- create object im
-    local outfile = '/dev/shm/proxy/inputhd_new.jpg' -- declare outfile path
-    img.compress.outfile = outfile -- set outfile setting
-    img.compress.format = "g8" -- set format setting (g8 = Grayscale)
-    img.compress.quality = 80 -- set quality
-    img:save() -- save file to disk
-    ngx.print(img:get_blob()) -- return image after compress to end user
-
+-- content of resty-libjpeg-sample.lua
+local libjpeg = require("resty.libjpeg.jpeg") -- load library
+local res = ngx.location.capture('/proxy'..ngx.var.request_uri) -- get data from nginx location /proxy by subrequest 
+local img = libjpeg.load_blob(res.body) -- create object im
+local outfile = '/dev/shm/proxy/inputhd_new.jpg' -- declare outfile path
+img.compress.outfile = outfile -- set outfile setting
+img.compress.format = "g8" -- set format setting (g8 = Grayscale)
+img.compress.quality = 80 -- set quality
+img:save() -- save file to disk
+ngx.print(img:get_blob()) -- return image after compress to end user
 ~~~~
 ------------------- ----------------------------------------------------------
-
-__NOTE__: As can be seen, not all conversions are possible with libjpeg-turbo,
-so always check the image's `format` field to get the actual format. Use
-[bitmap] to further convert the image if necessary.
-
-For more info on the decoding process and options read the
-[libjpeg-turbo doc].
-
-__NOTE:__ the number of bits per channel in the output bitmap is always 8.
-
-----
 
