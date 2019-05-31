@@ -430,7 +430,7 @@ local function load_blob(blob)
 	local cinfo = ffi.new'jpeg_decompress_struct'
 
 	--image settings table
-	local settings = {
+	local compressSettings = {
 		write_buffer_size = 131072,
 		format = nil,
 		quality = nil,
@@ -442,7 +442,7 @@ local function load_blob(blob)
 	}
 	-- init img object
 	local img = {
-		settings = settings
+		compress = compressSettings
 	}
 
 	img.free = free
