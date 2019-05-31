@@ -97,9 +97,8 @@ __NOTE:__ the number of bits per channel in the output bitmap is always 8.
 
 ## Sample Code
 
-Nginx Configuration
-
-~~~~ config
+**Nginx Configuration**
+~~~~Nginx
 server {
 	listen 80;
 	location = /favicon.ico {
@@ -116,9 +115,9 @@ server {
 }
 ~~~~
 
-resty-libjpeg-sample.lua
-
-~~~~ lua
+----
+**resty-libjpeg-sample.lua**
+~~~~lua
 
 local libjpeg = require("resty.libjpeg.jpeg") -- load library
 local res = ngx.location.capture('/proxy'..ngx.var.request_uri) -- get data from nginx location /proxy by subrequest 
