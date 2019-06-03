@@ -7,8 +7,6 @@ tagline: JPEG encoding & decoding
 # Required Library
 [luapower-glue](https://github.com/luapower/glue)
 
-[luapower-fs](https://github.com/luapower/fs)
-
 [libjpeg-turbo](https://github.com/libjpeg-turbo/libjpeg-turbo) (v8 API)
 
 ## `local libjpeg = require('resty.libjpeg.jpeg')`
@@ -20,12 +18,13 @@ partial loading, fractional scaling and multiple pixel formats.
 ## API
 
 ------------------------------------ -----------------------------------------
-  * `libjpeg.load_blob(blob) -> img:`     open a JPEG image from blob binary data for decoding
-  * `img.compress.[opt]:`                 set/read option for compress process (must set before run get_blob() for save() function)
-  * `img.bmp:`                            (readonly) the bitmap object after decompress
-  * `img:get_blob():`                     get JPEG image to binary string after compress
-  * `img:save():`                         save JPEG image to disk (must set img.compress.outfile)
-  * `img:free():`                         free the image
+  * `libjpeg.load_blob(blob) -> img:`               open a JPEG image from blob binary data for decoding
+  * `libjpeg.load_from_disk(<string>infile) -> img:`open a JPEG image from file on disk for decoding
+  * `img.compress.[opt]:`                           set/read option for compress process (must set before run get_blob() for save() function)
+  * `img.bmp:`                                      (readonly) the bitmap object after decompress
+  * `img:get_blob():`                               get JPEG image to binary string after compress
+  * `img:save():`                                   save JPEG image to disk (must set img.compress.outfile)
+  * `img:free():`                                   free the image
 ------------------------------------ -----------------------------------------
 
 ### `libjpeg.load_blob(blob) -> img`
@@ -120,8 +119,11 @@ server {
 ~~~~lua
 
 local libjpeg = require("resty.libjpeg.jpeg") -- load library
+-- get data direct from nginx
 local res = ngx.location.capture('/proxy'..ngx.var.request_uri) -- get data from nginx location /proxy by subrequest 
-local img = libjpeg.load_blob(res.body) -- create object im
+local img = libjpeg.load_blob(res.body) -- create object img
+-- get data from disk
+-- local img = libjpeg.load_from_disk('/dev/shm/proxy/inputhd.jpg') -- create object img
 local outfile = '/dev/shm/proxy/inputhd_new.jpg' -- declare outfile path
 img.compress.outfile = outfile -- set outfile setting
 img.compress.format = "g8" -- set format setting (g8 = Grayscale)

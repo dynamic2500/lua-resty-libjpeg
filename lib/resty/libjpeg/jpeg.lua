@@ -285,125 +285,125 @@ local function load_image(cinfo,img, t)
 	return bmp
 end
 
-local function save(bmp,t)
-	local write
+local function save(img)
 	local allbuf = ""
-	local f
-	if t.outfile then
-		--open file to write
-		local fs = require('fs')
-		f = assert(fs.open(t.outfile, 'w'))
-		write =  function(buf, sz)
-			assert(f:write(buf, sz) == sz)
-		end
-	else
-		write =  function(buf, sz)
+	local compressedData = img.compressedData
+	local t = img.compress
+	if (compressedData == nil) then
+		local bmp = img.bmp
+		local write =  function(buf, sz)
 			allbuf = allbuf .. ffi.string(buf,sz)
 		end
-	end
-	glue.fcall(function(finally)
+		glue.fcall(function(finally)
 
-		--create the state object
-		local cinfo = ffi.new'jpeg_compress_struct'
+			--create the state object
+			local cinfo = ffi.new'jpeg_compress_struct'
 
-		--setup error handling
-		local jerr, jerr_free = jpeg_err(t)
-		cinfo.err = jerr
-		finally(jerr_free)
+			--setup error handling
+			local jerr, jerr_free = jpeg_err(t)
+			cinfo.err = jerr
+			finally(jerr_free)
 
-		--init state
-		C.jpeg_CreateCompress(cinfo,
-			t.lib_version or LIBJPEG_VERSION,
-			ffi.sizeof(cinfo))
+			--init state
+			C.jpeg_CreateCompress(cinfo,
+				t.lib_version or LIBJPEG_VERSION,
+				ffi.sizeof(cinfo))
 
-		finally(function()
-			C.jpeg_destroy_compress(cinfo)
+			finally(function()
+				C.jpeg_destroy_compress(cinfo)
+			end)
+
+			local write = write
+			local finish = t.finish or glue.pass
+
+			--create the dest. buffer
+			local sz = t.write_buffer_size or 4096
+			local buf = t.write_buffer or ffi.new('char[?]', sz)
+
+			--create destination callbacks
+			local cb = {}
+
+			function cb.init_destination(cinfo)
+				cinfo.dest.next_output_byte = buf
+				cinfo.dest.free_in_buffer = sz
+			end
+
+			function cb.term_destination(cinfo)
+				write(buf, sz - cinfo.dest.free_in_buffer)
+				finish()
+			end
+
+			function cb.empty_output_buffer(cinfo)
+				write(buf, sz)
+				cb.init_destination(cinfo)
+				return true
+			end
+
+			--create a destination manager and set it up
+			local mgr, free_mgr = callback_manager('jpeg_destination_mgr', cb)
+			cinfo.dest = mgr
+			finally(free_mgr) --the finalizer anchors mgr through free_mgr!
+
+			--set the source format
+			cinfo.image_width = bmp.w
+			cinfo.image_height = bmp.h
+			cinfo.in_color_space =
+			assert(color_spaces[bmp.format], 'invalid source format')
+			cinfo.input_components =
+			assert(channel_count[bmp.format], 'invalid source format')
+
+			--set the default compression options based on in_color_space
+			C.jpeg_set_defaults(cinfo)
+
+			--set compression options
+			if t.format then
+				C.jpeg_set_colorspace(cinfo,
+					assert(color_spaces[t.format]))
+			end
+			if t.quality then
+				C.jpeg_set_quality(cinfo, t.quality, true)
+			end
+			if t.progressive then
+				C.jpeg_simple_progression(cinfo)
+			end
+			if t.dct_method then
+				cinfo.dct_method =
+				assert(dct_methods[t.dct_method], 'invalid dct_method')
+			end
+			if t.optimize_coding then
+				cinfo.optimize_coding = t.optimize_coding
+			end
+			if t.smoothing then
+				cinfo.smoothing_factor = t.smoothing
+			end
+
+			--start the compression cycle
+			C.jpeg_start_compress(cinfo, true)
+
+			--make row pointers from the bitmap buffer
+
+			local rows = rows_buffer(bmp.h, bmp.bottom_up, bmp.data, bmp.stride)
+
+			--compress rows
+			C.jpeg_write_scanlines(cinfo, rows, bmp.h)
+
+			--finish the compression, optionally adding additional scans
+			C.jpeg_finish_compress(cinfo)
 		end)
-
-		local write = write
-		local finish = t.finish or glue.pass
-
-		--create the dest. buffer
-		local sz = t.write_buffer_size or 4096
-		local buf = t.write_buffer or ffi.new('char[?]', sz)
-
-		--create destination callbacks
-		local cb = {}
-
-		function cb.init_destination(cinfo)
-			cinfo.dest.next_output_byte = buf
-			cinfo.dest.free_in_buffer = sz
-		end
-
-		function cb.term_destination(cinfo)
-			write(buf, sz - cinfo.dest.free_in_buffer)
-			finish()
-		end
-
-		function cb.empty_output_buffer(cinfo)
-			write(buf, sz)
-			cb.init_destination(cinfo)
-			return true
-		end
-
-		--create a destination manager and set it up
-		local mgr, free_mgr = callback_manager('jpeg_destination_mgr', cb)
-		cinfo.dest = mgr
-		finally(free_mgr) --the finalizer anchors mgr through free_mgr!
-
-		--set the source format
-		cinfo.image_width = bmp.w
-		cinfo.image_height = bmp.h
-		cinfo.in_color_space =
-		assert(color_spaces[bmp.format], 'invalid source format')
-		cinfo.input_components =
-		assert(channel_count[bmp.format], 'invalid source format')
-
-		--set the default compression options based on in_color_space
-		C.jpeg_set_defaults(cinfo)
-
-		--set compression options
-		if t.format then
-			C.jpeg_set_colorspace(cinfo,
-				assert(color_spaces[t.format]))
-		end
-		if t.quality then
-			C.jpeg_set_quality(cinfo, t.quality, true)
-		end
-		if t.progressive then
-			C.jpeg_simple_progression(cinfo)
-		end
-		if t.dct_method then
-			cinfo.dct_method =
-			assert(dct_methods[t.dct_method], 'invalid dct_method')
-		end
-		if t.optimize_coding then
-			cinfo.optimize_coding = t.optimize_coding
-		end
-		if t.smoothing then
-			cinfo.smoothing_factor = t.smoothing
-		end
-
-		--start the compression cycle
-		C.jpeg_start_compress(cinfo, true)
-
-		--make row pointers from the bitmap buffer
-
-		local rows = rows_buffer(bmp.h, bmp.bottom_up, bmp.data, bmp.stride)
-
-		--compress rows
-		C.jpeg_write_scanlines(cinfo, rows, bmp.h)
-
-		--finish the compression, optionally adding additional scans
-		C.jpeg_finish_compress(cinfo)
-	end)
+		img.compressedData = allbuf
+	else
+		allbuf = compressedData
+	end
 	if t.outfile then
+		local f = io.open(t.outfile,"w")
+		f:write(allbuf)
 		f:close()
 		return true
 	else
 		return allbuf
 	end
 end
+
 
 local function load_blob(blob)
 	local t = {}
@@ -473,11 +473,23 @@ local function load_blob(blob)
 	end
 
 	img.bmp = load_image(cinfo,img,t)
-	img.get_blob = function() img.compress.outfile = nil return save(img.bmp,img.compress) end
-	img.save = function() return save(img.bmp,img.compress) end
+	img.compressedData = nil
+	img.get_blob = function() img.compress.outfile = nil return save(img) end
+	img.save = function() return save(img) end
 	return img
+end
+
+local function load_from_disk(infile)
+	local f = io.open(infile,"r")
+	if (f) then
+		local imgbuf = f:read("*a")
+		return load_blob(imgbuf)
+	else
+		return nil
+	end
 end
 
 return {
 	load_blob = load_blob,
+	load_from_disk = load_from_disk
 }
